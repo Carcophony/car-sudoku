@@ -376,6 +376,7 @@ function selectCar(idx, el){
 function onCellClick(e){
   const cell = e.currentTarget;
   const r = +cell.dataset.r, c = +cell.dataset.c;
+  // Deselect if tapping same cell
   if(selected === cell){
     cell.classList.remove('selected');
     selected = null;
@@ -384,7 +385,8 @@ function onCellClick(e){
   if(selected) selected.classList.remove('selected');
   selected = cell;
   cell.classList.add('selected');
-  if(selectedCar !== null) placeCar();
+  // Only auto-place if cell is empty (not already filled)
+  if(selectedCar !== null && grid[r][c] === -1) placeCar();
 }
 
 function placeCar(){
@@ -447,12 +449,14 @@ function clearSelected(){
   const r=+selected.dataset.r, c=+selected.dataset.c;
   if(PUZZLE[r][c]!==-1) return;
   grid[r][c]=-1;
-  selected.innerHTML='';
-  selected.className='cell empty';
-  if(c===2) selected.style.marginRight='5px';
-  if(r===1||r===3) selected.style.marginBottom='5px';
-  selected.addEventListener('click',onCellClick);
-  selected.classList.add('selected');
+  const cell = selected;
+  selected = null;
+  cell.classList.remove('selected');
+  cell.innerHTML='';
+  cell.className='cell empty';
+  if(c===2) cell.style.marginRight='5px';
+  if(r===1||r===3) cell.style.marginBottom='5px';
+  cell.addEventListener('click',onCellClick);
   updateFilled();
 }
 
