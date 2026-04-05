@@ -106,7 +106,7 @@ h1{
 .cell.filled{border-color:var(--purple-mid);}
 .cell.selected{border-color:var(--purple)!important;box-shadow:0 0 0 3px var(--purple-light);transform:scale(1.05);z-index:2;}
 .cell.error{border-color:var(--error)!important;animation:shake 0.3s;}
-.cell.correct-flash{border-color:var(--correct)!important;}
+
 .cell img{width:100%;height:100%;object-fit:cover;display:block;}
 .cell-num{
   position:absolute;
@@ -315,42 +315,39 @@ function buildGrid(){
       const cell = document.createElement('div');
       cell.className='cell';
       cell.dataset.r=r; cell.dataset.c=c;
-
-      // Box gap styling
       if(c===2) cell.style.marginRight='5px';
-      if(r===1) cell.style.marginBottom='5px';
-      if(r===3) cell.style.marginBottom='5px';
-
-      const val = grid[r][c];
-      if(PUZZLE[r][c] !== -1){
-        cell.classList.add('given');
-        const img = document.createElement('img');
-        img.src = CARS[val].img;
-        img.draggable=false;
-        cell.appendChild(img);
-        const num = document.createElement('div');
-        num.className='cell-num';
-        num.textContent = val+1;
-        cell.appendChild(num);
-      } else if(val !== -1){
-        cell.classList.add('filled');
-        const img = document.createElement('img');
-        img.src = CARS[val].img;
-        img.draggable=false;
-        cell.appendChild(img);
-        const num = document.createElement('div');
-        num.className='cell-num';
-        num.textContent = val+1;
-        cell.appendChild(num);
-        cell.addEventListener('click', onCellClick);
-      } else {
-        cell.classList.add('empty');
-        cell.addEventListener('click', onCellClick);
-      }
+      if(r===1||r===3) cell.style.marginBottom='5px';
       g.appendChild(cell);
     }
   }
+  renderAllCells();
+  g.addEventListener('click', onGridClick);
   updateFilled();
+}
+
+function renderAllCells(){
+  for(let r=0;r<6;r++) for(let c=0;c<6;c++) renderCell(r,c);
+}
+
+function renderCell(r,c){
+  const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  const val = grid[r][c];
+  const isGiven = PUZZLE[r][c] !== -1;
+  cell.innerHTML='';
+  cell.className = 'cell' + (isGiven?' given': val!==-1?' filled':' empty');
+  if(c===2) cell.style.marginRight='5px';
+  if(r===1||r===3) cell.style.marginBottom='5px';
+  if(selected === cell) cell.classList.add('selected');
+  if(val !== -1){
+    const img = document.createElement('img');
+    img.src = CARS[val].img;
+    img.draggable=false;
+    cell.appendChild(img);
+    const num = document.createElement('div');
+    num.className='cell-num';
+    num.textContent = val+1;
+    cell.appendChild(num);
+  }
 }
 
 function buildPicker(){
@@ -373,8 +370,10 @@ function selectCar(idx, el){
   if(selected) placeCar();
 }
 
-function onCellClick(e){
-  const cell = e.currentTarget;
+function onGridClick(e){
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  if(cell.classList.contains('given')) return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   // Deselect if tapping same cell
   if(selected === cell){
@@ -385,7 +384,7 @@ function onCellClick(e){
   if(selected) selected.classList.remove('selected');
   selected = cell;
   cell.classList.add('selected');
-  // Only auto-place if cell is empty (not already filled)
+  // Only auto-place if cell is empty
   if(selectedCar !== null && grid[r][c] === -1) placeCar();
 }
 
@@ -399,35 +398,17 @@ function placeCar(){
   const valid = isValid(r, c, selectedCar);
   grid[r][c] = selectedCar;
 
-  // Rebuild just this cell
-  selected.innerHTML='';
-  selected.className='cell filled';
-  if(r===2||r===4) selected.style.marginRight='';
-  if(c===2) selected.style.marginRight='5px';
-  if(r===1||r===3) selected.style.marginBottom='5px';
-
-  const img = document.createElement('img');
-  img.src = CARS[selectedCar].img;
-  img.draggable=false;
-  selected.appendChild(img);
-  const num = document.createElement('div');
-  num.className='cell-num';
-  num.textContent = selectedCar+1;
-  selected.appendChild(num);
-  selected.addEventListener('click', onCellClick);
+  const placedCell = selected;
+  selected = null;
+  renderCell(r,c);
+  placedCell.classList.remove('selected');
 
   if(!valid){
     errors++;
     document.getElementById('error-count').textContent=errors;
-    selected.classList.add('error');
-    setTimeout(()=>selected&&selected.classList.remove('error'),600);
-  } else {
-    selected.classList.add('correct-flash');
-    setTimeout(()=>selected&&selected.classList.remove('correct-flash'),400);
+    placedCell.classList.add('error');
+    setTimeout(()=>placedCell.classList.remove('error'),600);
   }
-
-  selected.classList.remove('selected');
-  selected = null;
   updateFilled();
   checkWin();
 }
@@ -451,12 +432,7 @@ function clearSelected(){
   grid[r][c]=-1;
   const cell = selected;
   selected = null;
-  cell.classList.remove('selected');
-  cell.innerHTML='';
-  cell.className='cell empty';
-  if(c===2) cell.style.marginRight='5px';
-  if(r===1||r===3) cell.style.marginBottom='5px';
-  cell.addEventListener('click',onCellClick);
+  renderCell(r,c);
   updateFilled();
 }
 
